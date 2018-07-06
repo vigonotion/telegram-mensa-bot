@@ -16,7 +16,7 @@ const bot = new Telegraf("611161751:AAEFv6EI4l8j9aCv1jx5gAknODDeR9tDopI");
 const low = require('lowdb')
 const FileSync = require('lowdb/adapters/FileSync')
 
-const adapter = new FileSync('Database/db.json')
+const adapter = new FileSync(__dirname + '/Database/db.json')
 const db = low(adapter)
 
 // Set some defaults (required if your JSON file is empty)
@@ -115,19 +115,45 @@ settingsScene.hears("🥕", (ctx) => {
     db.get('users')
       .push({
         user_id: ctx.from.id,
-        veggiefilter: true
+        veggiefilter: true,
+        veganfilter: false
        })
        .write()
   } else {
     db.get('users')
       .find({ user_id: ctx.from.id })
       .assign({
-        veggiefilter: true
+        veggiefilter: true,
+        veganfilter: false
        })
        .write()
   }
 
   ctx.replyWithMarkdown("Du hast den ultrageheimen Veggie-Filter aktiviert.", Extra.markup(Markup.removeKeyboard()))
+
+  leave()
+})
+
+settingsScene.hears("🌴", (ctx) => {
+  if(db.get('users')
+  .find({ user_id: ctx.from.id })
+  .value() === undefined) {
+    db.get('users')
+      .push({
+        user_id: ctx.from.id,
+        veganfilter: true
+       })
+       .write()
+  } else {
+    db.get('users')
+      .find({ user_id: ctx.from.id })
+      .assign({
+        veganfilter: true
+       })
+       .write()
+  }
+
+  ctx.replyWithMarkdown("Die Veganer-Polizei überwacht jetzt diesen Speiseplan..", Extra.markup(Markup.removeKeyboard()))
 
   leave()
 })
@@ -264,6 +290,7 @@ function getMensaPlan(ctx, obj, notes = false) {
       let response = "Heute gibt es in deiner Mensa:\n"
 
       let last_category = ""
+      let count = 0
       _.each(JSON.parse(body), function(meal) {
 
         if(obj.veggiefilter) {
@@ -274,6 +301,12 @@ function getMensaPlan(ctx, obj, notes = false) {
 
         if(obj.everydayfilter) {
           if(everydayfilter.some(r => meal.category == r)) {
+            return
+          }
+        }
+
+        if(obj.veganfilter) {
+          if(!meal.notes.includes("Vegan")) {
             return
           }
         }
@@ -290,7 +323,15 @@ function getMensaPlan(ctx, obj, notes = false) {
         }
 
         response += meal.prices.students.toFixed(2) + "€\n\n"
+
+        count++
       })
+
+
+      if(count == 0) {
+        response += "\nLeider gibt es heute nichts in deiner Mensa.\n(Überprüfe evtl. deine Filtereinstellungen)"
+      }
+
       if(notes)
         ctx.editMessageText(response, Extra.markdown())
       else
