@@ -1,3 +1,5 @@
+require('dotenv').config({path: __dirname + '/.env'})
+
 const Telegraf = require("telegraf")
 const Extra = require('telegraf/extra')
 const Markup = require('telegraf/markup')
@@ -10,7 +12,7 @@ const _ = require('lodash');
 
 const { enter, leave } = Stage
 
-const bot = new Telegraf("611161751:AAEFv6EI4l8j9aCv1jx5gAknODDeR9tDopI");
+const bot = new Telegraf(process.env.BOT_TOKEN);
 
 // Database
 const low = require('lowdb')
