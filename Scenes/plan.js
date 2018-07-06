@@ -11,6 +11,7 @@ module.exports = function(app) {
       "mit Schwein",
       "mit Rind",
       "mit Fisch",
+      "Krebstier(e)/-erzeugnisse"
       ]
 
   let everydayfilter = [
