@@ -48,9 +48,15 @@ bot.command('settings', enter('settings'))
 // plan
 bot.command('today', enter('plan'))
 bot.action('notes', (ctx) => {
+  ctx.session.editLast = true
   ctx.session.showNotes = true
   ctx.scene.enter('plan')
 })
-
+bot.action('unfiltered', (ctx) => {
+  ctx.session.editLast = true
+  ctx.session.showNotes = true
+  ctx.session.showAll = true
+  ctx.scene.enter('plan')
+})
 bot.on('message', (ctx) => ctx.reply('Befehl nicht verstanden. Benutze /settings oder /today'))
 bot.startPolling()

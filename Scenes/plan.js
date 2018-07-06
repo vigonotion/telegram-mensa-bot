@@ -30,10 +30,12 @@ module.exports = function(app) {
       let obj = app.db.get('users').find({ user_id: ctx.from.id }).value()
 
       console.log('sendplan')
-      sendPlan(obj, ctx, ctx.session.showNotes)
+      sendPlan(obj, ctx, ctx.session.showNotes, !ctx.session.showAll, ctx.session.editLast)
 
       // Reset any one-time filters
       ctx.session.showNotes = false
+      ctx.session.showAll = false
+      ctx.session.editLast = false
 
     } else {
       ctx.reply("Du hast noch keine Mensa eingestellt. Benutze /settings zum einstellen der Mensa.")
@@ -45,33 +47,36 @@ module.exports = function(app) {
   //plan.leave((ctx) => ctx.reply("Beendet."))
 
   // HELPER FUNCTIONS
-  function sendPlan(obj, ctx, notes = false, filter = [], date = new Date()) {
+  function sendPlan(obj, ctx, notes = false, filter = true, editLast = false, date = new Date()) {
     console.log(notes)
     date = date.toISOString().slice(0,10);
 
+    let mealcount = 0
 
     // Open Mensa request
     request('http://openmensa.org/api/v2/canteens/' + obj.mensa_id + '/days/' + date + "/meals", function (error, response, body) {
       if (!error && response.statusCode == 200) {
         let response = "Heute gibt es in deiner Mensa:\n"
+        let result = JSON.parse(body)
 
         let last_category = ""
-        let count = 0
-        _.each(JSON.parse(body), function(meal) {
+        let mealcount = result.length
+        let filteredcount = 0
+        _.each(result, function(meal) {
 
-          if(obj.veggiefilter) {
+          if(filter && obj.veggiefilter) {
             if(veggiefilter.some(r => meal.notes.includes(r))) {
               return
             }
           }
 
-          if(obj.everydayfilter) {
+          if(filter && obj.everydayfilter) {
             if(everydayfilter.some(r => meal.category == r)) {
               return
             }
           }
 
-          if(obj.veganfilter) {
+          if(filter && obj.veganfilter) {
             if(!meal.notes.includes("Vegan")) {
               return
             }
@@ -90,21 +95,44 @@ module.exports = function(app) {
 
           response += meal.prices.students.toFixed(2) + "€\n\n"
 
-          count++
+          filteredcount++
         })
 
 
-        if(count == 0) {
+        if(filteredcount == 0) {
           response += "\nLeider gibt es heute nichts in deiner Mensa.\n(Überprüfe evtl. deine Filtereinstellungen)"
         }
 
-        if(notes)
-          ctx.editMessageText(response, Extra.markdown())
-        else
-          ctx.reply(response, Extra.markdown().markup((m) =>
-            m.inlineKeyboard([
-              m.callbackButton('Inhaltsstoffe anzeigen', 'notes')
-            ])))
+        function keyboard(m, notes = true, more = false, morecount = 0) {
+          keyboards = []
+          if(notes) keyboards.push(m.callbackButton('Inhaltsstoffe anzeigen', 'notes'))
+          if(more)  keyboards.push(m.callbackButton(morecount + ' weitere anzeigen', 'unfiltered'))
+          return keyboards
+        }
+
+        if(filteredcount == 0 && mealcount > 0) {
+
+          if(editLast)
+            ctx.editMessageText(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m))))
+          else
+            ctx.reply(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, false, true, mealcount))))
+
+        } else if(filteredcount < mealcount) {
+          let diff = mealcount - filteredcount
+
+          if(editLast)
+            ctx.editMessageText(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, !notes, true, diff))))
+          else
+            ctx.reply(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, true, true, diff))))
+
+        } else {
+          if(editLast)
+            ctx.editMessageText(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, false))))
+          else
+            ctx.reply(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m))))
+        }
+
+
       }
     })
 
