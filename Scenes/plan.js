@@ -29,7 +29,6 @@ module.exports = function(app) {
     if(app.db.get('users').find({ user_id: ctx.from.id }).value() !== undefined) {
       let obj = app.db.get('users').find({ user_id: ctx.from.id }).value()
 
-      console.log('sendplan')
       sendPlan(obj, ctx, ctx.session.showNotes, !ctx.session.showAll, ctx.session.editLast)
 
       // Reset any one-time filters
@@ -48,7 +47,6 @@ module.exports = function(app) {
 
   // HELPER FUNCTIONS
   function sendPlan(obj, ctx, notes = false, filter = true, editLast = false, date = new Date()) {
-    console.log(notes)
     date = date.toISOString().slice(0,10);
 
     let mealcount = 0

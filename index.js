@@ -26,8 +26,10 @@ let app = {
   leave: leave
 }
 
-
 //bot.use(Telegraf.log())
+
+require('./Core/canteens.js')(app);
+
 
 let scene_settings = require('./Scenes/settings.js')(app);
 let scene_search = require('./Scenes/search.js')(app);

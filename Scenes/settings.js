@@ -4,6 +4,9 @@ module.exports = function(app) {
   const Extra = require('telegraf/extra')
   const Stage = require('telegraf/stage')
   const Markup = require('telegraf/markup')
+  const request = require('request');
+  const _ = require('lodash');
+
 
   const settings = new Scene('settings')
   settings.enter((ctx) => ctx.replyWithMarkdown('*Einstellungen*\nWie kann ich dir helfen?', Markup
@@ -13,11 +16,11 @@ module.exports = function(app) {
       .extra()
     ))
 
-  settings.leave((ctx) => ctx.reply("Ich hoffe, jetzt ist alles recht so. Wenn nicht, frag mich einfach nochmal!", Extra.markup(Markup.removeKeyboard())))
+  // settings.leave((ctx) => ctx.reply("Ich hoffe, jetzt ist alles recht so. Wenn nicht, frag mich einfach nochmal!", Extra.markup(Markup.removeKeyboard())))
   settings.hears('Abbrechen', app.leave())
 
   settings.hears('🍽 Mensa auswählen', (ctx) => ctx.reply('Wie möchtest du deine Mensa wählen?', Markup
-      .keyboard([Markup.locationRequestButton('📍 Standort senden')/*, '🔎 Per Name suchen'*/]) //«
+      .keyboard([Markup.locationRequestButton('📍 Standort senden'), '🔎 Per Name suchen']) //«
       .oneTime()
       .resize()
       .extra()
@@ -44,7 +47,7 @@ module.exports = function(app) {
     })
 
   })
-  settings.hears('🔎 Per Name suchen', app.enter('settings-searchbyname'))
+  settings.hears('🔎 Per Name suchen', app.enter('search'))
 
   settings.hears(/(.+)#(\d+)/gm, (ctx) => {
 
