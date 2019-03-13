@@ -11,9 +11,12 @@ module.exports = function(app) {
   request('http://openmensa.org/api/v2/canteens?limit=100&page='+page, function (error, response, body) {
 
     _.each(JSON.parse(body), function(e) {
+
+      let name = (e.name === undefined) ? "" : e.name.trim()
+
       let c = {
         id: e.id,
-        name: e.name,
+        name: name,
         city: e.city
       }
 

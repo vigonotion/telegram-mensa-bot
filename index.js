@@ -33,10 +33,12 @@ require('./Core/canteens.js')(app);
 
 let scene_settings = require('./Scenes/settings.js')(app);
 let scene_search = require('./Scenes/search.js')(app);
+let scene_canteen_delete = require('./Scenes/canteen_delete.js')(app);
 let scene_plan = require('./Scenes/plan.js')(app);
 
 
-const stage = new Stage([scene_settings, scene_search, scene_plan], { ttl: 100 })
+
+const stage = new Stage([scene_settings, scene_search, scene_canteen_delete, scene_plan], { ttl: 100 })
 bot.use(session())
 bot.use(stage.middleware())
 
@@ -48,7 +50,11 @@ bot.command('start', (ctx) => {
 bot.command('settings', enter('settings'))
 
 // plan
-bot.command('today', enter('plan'))
+bot.command('today', (ctx) => {
+  ctx.session.editLast = false
+  ctx.scene.enter('plan')
+})
+
 bot.action('notes', (ctx) => {
   ctx.session.editLast = true
   ctx.session.showNotes = true
@@ -56,9 +62,27 @@ bot.action('notes', (ctx) => {
 })
 bot.action('unfiltered', (ctx) => {
   ctx.session.editLast = true
-  ctx.session.showNotes = true
   ctx.session.showAll = true
   ctx.scene.enter('plan')
 })
+bot.action('next_canteen', (ctx) => {
+  ctx.session.currentCanteen = ctx.session.currentCanteen || 0
+  ctx.session.currentCanteen++
+
+  ctx.session.editLast = true
+  ctx.session.showNotes = false
+  ctx.session.showAll = false
+  ctx.scene.enter('plan')
+})
+bot.action('last_canteen', (ctx) => {
+  ctx.session.currentCanteen = ctx.session.currentCanteen || 0
+  ctx.session.currentCanteen--
+
+  ctx.session.editLast = true
+  ctx.session.showNotes = false
+  ctx.session.showAll = false
+  ctx.scene.enter('plan')
+})
 bot.on('message', (ctx) => ctx.reply('Befehl nicht verstanden. Benutze /settings oder /today'))
+
 bot.startPolling()

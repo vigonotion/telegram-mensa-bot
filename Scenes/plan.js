@@ -27,15 +27,15 @@ module.exports = function(app) {
   plan.enter((ctx) => {
 
     //Check if user exists in database
-    if(app.db.get('users').find({ user_id: ctx.from.id }).value() !== undefined) {
-      let obj = app.db.get('users').find({ user_id: ctx.from.id }).value()
+    let obj = app.db.get('users').find({ user_id: ctx.from.id }).value()
+    if(obj !== undefined && obj.canteens.length > 0) {
 
       sendPlan(obj, ctx, ctx.session.showNotes, !ctx.session.showAll, ctx.session.editLast)
 
       // Reset any one-time filters
-      ctx.session.showNotes = false
-      ctx.session.showAll = false
-      ctx.session.editLast = false
+      // ctx.session.editLast = false
+      // ctx.session.showNotes = false
+      // ctx.session.showAll = false
 
     } else {
       ctx.reply("Du hast noch keine Mensa eingestellt. Benutze /settings zum einstellen der Mensa.")
@@ -46,16 +46,30 @@ module.exports = function(app) {
 
   //plan.leave((ctx) => ctx.reply("Beendet."))
 
+  function getCanteen(id) {
+    return app.db.get('canteens').find({ id: id }).value()
+  }
+
   // HELPER FUNCTIONS
+
+  function modulo(a,n) {
+    return a - (n * Math.floor(a/n))
+  }
+
   function sendPlan(obj, ctx, notes = false, filter = true, editLast = false, date = new Date()) {
     date = date.toISOString().slice(0,10);
 
-    let mealcount = 0
+    if(ctx.session.currentCanteen === undefined) ctx.session.currentCanteen = 0
+    ctx.session.currentCanteen = modulo(ctx.session.currentCanteen, obj.canteens.length)
+    let canteen_id = obj.canteens[ctx.session.currentCanteen]
+
+    let canteen = getCanteen(canteen_id)
+    let canteen_name = (canteen !== undefined) ? canteen.name : ""
 
     // Open Mensa request
-    request('http://openmensa.org/api/v2/canteens/' + obj.mensa_id + '/days/' + date + "/meals", function (error, response, body) {
+    request('http://openmensa.org/api/v2/canteens/' + canteen_id + '/days/' + date + "/meals", function (error, response, body) {
       if (!error && response.statusCode == 200) {
-        let response = "Heute gibt es in deiner Mensa:\n"
+        let response = "Heute gibt es in der Mensa *" + canteen_name + "*:\n"
         let result = JSON.parse(body)
 
         let last_category = ""
@@ -102,34 +116,24 @@ module.exports = function(app) {
           response += "\nLeider gibt es heute nichts in deiner Mensa.\n(Überprüfe evtl. deine Filtereinstellungen)"
         }
 
-        function keyboard(m, notes = true, more = false, morecount = 0) {
+        function keyboard(m, show_canteen_nav = false, notes = true, more = false, morecount = 0) {
           keyboards = []
+          canteen_nav = [m.callbackButton('« Vorherige Mensa', 'last_canteen'), m.callbackButton('Nächste Mensa »', 'next_canteen')]
           if(notes) keyboards.push(m.callbackButton('Inhaltsstoffe anzeigen', 'notes'))
           if(more)  keyboards.push(m.callbackButton(morecount + ' weitere anzeigen', 'unfiltered'))
-          return keyboards
+
+          if(show_canteen_nav) return [canteen_nav, keyboards]
+          return [keyboards]
         }
 
-        if(filteredcount == 0 && mealcount > 0) {
+        let morecount = mealcount - filteredcount
+        let md = Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, obj.canteens.length > 1, !notes, morecount > 0, morecount)))
 
-          if(editLast)
-            ctx.editMessageText(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m))))
-          else
-            ctx.reply(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, false, true, mealcount))))
+        if(editLast)
+          ctx.editMessageText(response, md)
+        else
+          ctx.reply(response, md)
 
-        } else if(filteredcount < mealcount) {
-          let diff = mealcount - filteredcount
-
-          if(editLast)
-            ctx.editMessageText(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, !notes, true, diff))))
-          else
-            ctx.reply(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, true, true, diff))))
-
-        } else {
-          if(editLast)
-            ctx.editMessageText(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m, false))))
-          else
-            ctx.reply(response, Extra.markdown().markup((m) => m.inlineKeyboard(keyboard(m))))
-        }
 
 
       }
