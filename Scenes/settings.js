@@ -7,10 +7,12 @@ module.exports = function(app) {
   const request = require('request');
   const _ = require('lodash');
 
+  const s_add_canteen = "➕ Mensa hinzufügen"
+  const s_del_canteen = "➖ Mensa entfernen"
 
   const settings = new Scene('settings')
   settings.enter((ctx) => ctx.replyWithMarkdown('*Einstellungen*\nWie kann ich dir helfen?', Markup
-      .keyboard(['🍽 Mensa auswählen', 'Abbrechen']) //«
+      .keyboard([s_add_canteen, s_del_canteen, 'Abbrechen']) //«
       .oneTime()
       .resize()
       .extra()
@@ -19,7 +21,7 @@ module.exports = function(app) {
   // settings.leave((ctx) => ctx.reply("Ich hoffe, jetzt ist alles recht so. Wenn nicht, frag mich einfach nochmal!", Extra.markup(Markup.removeKeyboard())))
   settings.hears('Abbrechen', app.leave())
 
-  settings.hears('🍽 Mensa auswählen', (ctx) => ctx.reply('Wie möchtest du deine Mensa wählen?', Markup
+  settings.hears(s_add_canteen, (ctx) => ctx.reply('Wie möchtest du deine Mensa wählen?', Markup
       .keyboard([Markup.locationRequestButton('📍 Standort senden'), '🔎 Per Name suchen']) //«
       .oneTime()
       .resize()
@@ -36,7 +38,7 @@ module.exports = function(app) {
             results.push(element.name + " #" + element.id)
           })
 
-          ctx.reply('Ich habe diese Mensen in der Nähe (10km) gefunden. Welche ist deine?', Markup
+          ctx.reply('Ich habe diese Mensen in der Nähe (10km) gefunden. Welche möchtest du hinzufügen?', Markup
               .keyboard(results) //«
               .oneTime()
               .resize()
@@ -47,33 +49,10 @@ module.exports = function(app) {
     })
 
   })
+
   settings.hears('🔎 Per Name suchen', app.enter('search'))
 
-  settings.hears(/(.+)#(\d+)/gm, (ctx) => {
-
-    if(app.db.get('users')
-    .find({ user_id: ctx.from.id })
-    .value() === undefined) {
-      app.db.get('users')
-        .push({
-          user_id: ctx.from.id,
-          mensa_id: ctx.match[2]
-         })
-         .write()
-    } else {
-      app.db.get('users')
-       .find({ user_id: ctx.from.id })
-       .assign({
-         mensa_id: ctx.match[2]
-       })
-       .write()
-    }
-    ctx.replyWithMarkdown("_" + ctx.match[1] + "_ ist jetzt als deine Mensa gesetzt.\nSieh dir deinen Speiseplan mit /today an.", Extra.markup(Markup.removeKeyboard()))
-
-
-    app.leave()
-
-  })
+  settings.hears(s_del_canteen, app.enter('canteen_delete'))
 
   settings.hears("🥕", (ctx) => {
     if(app.db.get('users')

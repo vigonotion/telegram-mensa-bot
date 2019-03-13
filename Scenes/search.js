@@ -7,7 +7,7 @@ module.exports = function(app) {
 
   const search = new Scene('search')
 
-  search.enter((ctx) => ctx.reply('*Mensa suchen*\nBitte gebe den Namen deiner Mensa ein:'))
+  search.enter((ctx) => ctx.replyWithMarkdown('*Mensa suchen*\nBitte gib den Namen deiner Mensa ein:'))
 
   search.hears("Abbrechen", app.leave())
 
@@ -19,18 +19,17 @@ module.exports = function(app) {
       app.db.get('users')
         .push({
           user_id: ctx.from.id,
-          mensa_id: ctx.match[2]
+          canteens: [parseInt(ctx.match[2])]
          })
          .write()
     } else {
       app.db.get('users')
        .find({ user_id: ctx.from.id })
-       .assign({
-         mensa_id: ctx.match[2]
-       })
+       .get('canteens')
+       .push(parseInt(ctx.match[2]))
        .write()
     }
-    ctx.replyWithMarkdown("_" + ctx.match[1] + "_ ist jetzt als deine Mensa gesetzt.\nSieh dir deinen Speiseplan mit /today an.", Extra.markup(Markup.removeKeyboard()))
+    ctx.replyWithMarkdown("_" + ctx.match[1] + "_ wurde zu deinen Mensen hinzugefügt.\nSieh dir deinen Speiseplan mit /today an.", Extra.markup(Markup.removeKeyboard()))
 
 
     ctx.scene.leave()
