@@ -3,7 +3,7 @@ module.exports = function(app) {
   const Scene = require('telegraf/scenes/base')
   const Extra = require('telegraf/extra')
   const _ = require('lodash');
-  const request = require('request');
+  const fetch = require('node-fetch');
 
   /// HIDDEN VEGGIE FILTER
   let veggiefilter = [
@@ -67,15 +67,16 @@ module.exports = function(app) {
     let canteen_name = (canteen !== undefined) ? canteen.name : ""
 
     // Open Mensa request
-    request('http://openmensa.org/api/v2/canteens/' + canteen_id + '/days/' + date + "/meals", function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        let response = "Heute gibt es in der Mensa *" + canteen_name + "*:\n"
-        let result = JSON.parse(body)
 
-        let last_category = ""
-        let mealcount = result.length
+    fetch('http://openmensa.org/api/v2/canteens/' + canteen_id + '/days/' + date + '/meals')
+      .then(res => res.json())
+      .then(json => {
+          let response = "Heute gibt es in der Mensa *" + canteen_name + "*:\n"
+
+          let last_category = ""
+        let mealcount = json.length
         let filteredcount = 0
-        _.each(result, function(meal) {
+        _.each(json, function(meal) {
 
           if(filter && obj.veggiefilter) {
             if(veggiefilter.some(r => meal.notes.includes(r))) {
@@ -134,10 +135,8 @@ module.exports = function(app) {
         else
           ctx.reply(response, md)
 
+      });
 
-
-      }
-    })
 
   }
 

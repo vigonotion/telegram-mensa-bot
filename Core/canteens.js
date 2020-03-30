@@ -1,36 +1,35 @@
 module.exports = function(app) {
 
   // http://openmensa.org/api/v2/canteens?page=10
-  const request = require('request');
+  const fetch = require('node-fetch');
   const _ = require('lodash');
 
   app.db.set('canteens', [])
   .write()
 
-  for (var page=0; page<10; page++)
-  request('http://openmensa.org/api/v2/canteens?limit=100&page='+page, function (error, response, body) {
+  for (var page=0; page<10; page++) {
 
-    _.each(JSON.parse(body), function(e) {
+    fetch('http://openmensa.org/api/v2/canteens?limit=100&page='+page)
+      .then(res => res.json())
+      .then(json => {
+        _.each(json, function(e) {
 
-      let name = (e.name === undefined) ? "" : e.name.trim()
+          let name = (e.name === undefined) ? "" : e.name.trim()
+  
+          let c = {
+            id: e.id,
+            name: name,
+            city: e.city
+          }
+  
+          app.db.get('canteens')
+          .push(c)
+          .write()
+  
+        })
 
-      let c = {
-        id: e.id,
-        name: name,
-        city: e.city
-      }
+      });
 
-      app.db.get('canteens')
-      .push(c)
-      .write()
-
-    })
-
-
-  })
-
-
-
-
-
+      
+  }
 }

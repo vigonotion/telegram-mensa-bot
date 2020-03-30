@@ -4,7 +4,6 @@ module.exports = function(app) {
   const Extra = require('telegraf/extra')
   const Stage = require('telegraf/stage')
   const Markup = require('telegraf/markup')
-  const request = require('request');
   const _ = require('lodash');
 
   const s_add_canteen = "➕ Mensa hinzufügen"
@@ -31,7 +30,9 @@ module.exports = function(app) {
   settings.on('location', (ctx) => {
 
 
-    request('http://openmensa.org/api/v2/canteens?near[lat]='+ctx.message.location.latitude+'&near[lng]=' + ctx.message.location.longitude, function (error, response, body) {
+    fetch('http://openmensa.org/api/v2/canteens?near[lat]='+ctx.message.location.latitude+'&near[lng]=' + ctx.message.location.longitude)
+    .then(res => res.json())
+    .then(json => {
       if (!error && response.statusCode == 200) {
         var results = [];
           _.each(JSON.parse(body), function(element) {
@@ -46,6 +47,7 @@ module.exports = function(app) {
             )
 
        }
+    
     })
 
   })
