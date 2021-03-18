@@ -21,7 +21,7 @@
     "lodash": "^4.17.19",
     "lowdb": "^1.0.0",
     "node-fetch": "^2.6.0",
-    "telegraf": "^3.21.1"
+    "telegraf": "^4.3.0"
   },
   "devDependencies": {
     "prettier": "2.0.2"
